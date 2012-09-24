@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Convert currency using Yahoo Finance API.
+# (c) Ivan Radanovic <ivanra at gmail>
+#
+
+amount="$1"
+from_currency=`echo "$2" | tr '[[:lower:]]' '[[:upper:]]'`
+to_currency=`echo "$3" | tr '[[:lower:]]' '[[:upper:]]'`
+
+[ "$to_currency" = "IN" -o "$to_currency" = "TO" ] && 
+to_currency=`echo $4 | tr '[[:lower:]]' '[[:upper:]]'`
+
+if [ -z "$to_currency" ]; then
+	echo "usage: `basename $0` AMOUNT FROM_CURRENCY [in|to] TO_CURRENCY"
+	exit 0
+fi
+
+xrate="`curl -sL "http://finance.yahoo.com/d/quotes.csv?s=$from_currency$to_currency=X&f=sl1&e=.csv" | 
+cut -d',' -f2 |
+tr -d '\r\n'`"
+
+if [ -z "$xrate" -o "$xrate" = "0.00" ]; then
+	echo "`basename $0`: error: invalid exchange rate retrieved; most likely an unsupported currency."
+	exit 1
+fi
+
+echo "scale=4; $amount*$xrate" | bc -q 
+
+exit
+
